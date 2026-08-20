@@ -13,5 +13,14 @@ func JoinUnder(root, rel string) (string, error) {
 	if filepath.IsAbs(rel) {
 		return "", errors.New("absolute path")
 	}
-	return filepath.Join(root, rel), nil
+	joined := filepath.Join(root, rel)
+	// Reject traversal: the joined path must stay within root after
+	// lexical cleaning. A relative path climbing above root via ".." escapes.
+	relToRoot, err := filepath.Rel(root, joined)
+	sep := string(filepath.Separator)
+	if err != nil || filepath.IsAbs(relToRoot) || relToRoot == ".." ||
+		strings.HasPrefix(relToRoot, ".."+sep) {
+		return "", errors.New("path escape")
+	}
+	return joined, nil
 }
